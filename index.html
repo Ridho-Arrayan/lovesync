@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuis Kecocokan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #FFE6E6 0%, #FFB5B5 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+            position: relative;
+            z-index: 1;
+        }
+
+        .emoji {
+            position: fixed;
+            font-size: 24px;
+            user-select: none;
+            cursor: pointer;
+            z-index: 0;
+            transition: transform 0.3s;
+        }
+
+        .emoji.explode {
+            animation: explode 0.5s forwards;
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .welcome-screen, .question-screen, .result-screen {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2rem;
+            animation: bounce 1s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            background: #9b87f5;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(155, 135, 245, 0.3);
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
+        }
+
+        .btn:focus:not(:active)::after {
+            animation: ripple 1s ease-out;
+        }
+
+        @keyframes ripple {
+            0% { transform: scale(0, 0); opacity: 1; }
+            20% { transform: scale(25, 25); opacity: 0.8; }
+            100% { transform: scale(50, 50); opacity: 0; }
+        }
+
+        .answer-btn {
+            display: block;
+            width: 100%;
+            background: #FFE6E6;
+            border: none;
+            padding: 15px 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .answer-btn:hover {
+            background: #FFB5B5;
+            transform: translateX(10px);
+        }
+
+        .answer-btn::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: #9b87f5;
+            transform: scaleY(0);
+            transition: transform 0.3s;
+        }
+
+        .answer-btn:hover::before {
+            transform: scaleY(1);
+        }
+
+        .progress-bar {
+            background: #eee;
+            height: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            background: #9b87f5;
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease-out;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(255,255,255,0) 0%,
+                rgba(255,255,255,0.3) 50%,
+                rgba(255,255,255,0) 100%
+            );
+            animation: shine 1.5s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .btn {
+                padding: 12px 24px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="welcome-screen active">
+            <h1>Kuis Kecocokan</h1>
+            <p>Seberapa cocok kalian berdua? Jawab pertanyaan berikut dan temukan hasilnya!</p>
+            <button class="btn" onclick="startQuiz()">Mulai Kuis</button>
+        </div>
+
+        <div class="question-screen">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <h1 id="question-text"></h1>
+            <div id="answers-container"></div>
+        </div>
+
+        <div class="result-screen">
+            <h1>Hasil Kecocokan</h1>
+            <p id="result-text"></p>
+            <button class="btn" onclick="restartQuiz()">Mulai Lagi</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                text: "Apa kegiatan yang paling sering kalian lakukan bersama?",
+                answers: [
+                    { text: "Nonton film/series", score: 8 },
+                    { text: "Makan di tempat favorit", score: 7 },
+                    { text: "Olahraga bersama", score: 6 },
+                    { text: "Mengobrol santai", score: 5 }
+                ]
+            },
+            {
+                text: "Bagaimana cara kalian menyelesaikan konflik?",
+                answers: [
+                    { text: "Diskusi dengan kepala dingin", score: 10 },
+                    { text: "Memberi waktu untuk menenangkan diri", score: 8 },
+                    { text: "Mengalah untuk mengakhiri masalah", score: 6 },
+                    { text: "Menunggu waktu yang tepat", score: 4 }
+                ]
+            },
+            {
+                text: "Seberapa sering kalian berkomunikasi?",
+                answers: [
+                    { text: "Setiap hari, sepanjang hari", score: 10 },
+                    { text: "Beberapa kali sehari", score: 8 },
+                    { text: "Sekali sehari", score: 6 },
+                    { text: "Beberapa kali seminggu", score: 4 }
+                ]
+            },
+            {
+                text: "Apa yang membuat hubungan kalian spesial?",
+                answers: [
+                    { text: "Saling memahami tanpa kata-kata", score: 10 },
+                    { text: "Selalu ada di saat sulit", score: 8 },
+                    { text: "Memiliki mimpi yang sama", score: 7 },
+                    { text: "Saling mendukung", score: 6 }
+                ]
+            },
+            {
+                text: "Bagaimana kalian merayakan momen spesial?",
+                answers: [
+                    { text: "Merencanakan kejutan", score: 9 },
+                    { text: "Makan malam romantis", score: 8 },
+                    { text: "Memberikan hadiah", score: 7 },
+                    { text: "Menghabiskan waktu bersama", score: 6 }
+                ]
+            },
+            {
+                text: "Apa yang paling kalian nikmati saat bersama?",
+                answers: [
+                    { text: "Berbagi cerita dan tawa", score: 10 },
+                    { text: "Mencoba hal-hal baru", score: 8 },
+                    { text: "Melakukan hobi bersama", score: 7 },
+                    { text: "Bersantai dan rileks", score: 6 }
+                ]
+            },
+            {
+                text: "Bagaimana kalian mengatasi perbedaan pendapat?",
+                answers: [
+                    { text: "Mencari jalan tengah", score: 10 },
+                    { text: "Mendengarkan satu sama lain", score: 9 },
+                    { text: "Berdiskusi dengan tenang", score: 8 },
+                    { text: "Memberi ruang pribadi", score: 7 }
+                ]
+            },
+            {
+                text: "Apa yang membuat kalian tertawa bersama?",
+                answers: [
+                    { text: "Inside jokes", score: 10 },
+                    { text: "Momen-momen lucu", score: 8 },
+                    { text: "Saling menggoda", score: 7 },
+                    { text: "Cerita-cerita konyol", score: 6 }
+                ]
+            },
+            {
+                text: "Bagaimana cara kalian saling mendukung?",
+                answers: [
+                    { text: "Selalu ada saat dibutuhkan", score: 10 },
+                    { text: "Memberikan motivasi", score: 9 },
+                    { text: "Membantu mencapai tujuan", score: 8 },
+                    { text: "Mendengarkan keluh kesah", score: 7 }
+                ]
+            },
+            {
+                text: "Apa yang kalian lakukan di waktu luang?",
+                answers: [
+                    { text: "Eksplorasi tempat baru", score: 9 },
+                    { text: "Memasak bersama", score: 8 },
+                    { text: "Menonton film favorit", score: 7 },
+                    { text: "Bermain game", score: 6 }
+                ]
+            },
+            {
+                text: "Bagaimana kalian merencanakan masa depan?",
+                answers: [
+                    { text: "Diskusi rutin tentang tujuan", score: 10 },
+                    { text: "Membuat rencana bersama", score: 9 },
+                    { text: "Menabung untuk mimpi", score: 8 },
+                    { text: "Mengikuti arus", score: 6 }
+                ]
+            },
+            {
+                text: "Apa yang membuat kalian merasa dekat?",
+                answers: [
+                    { text: "Berbagi rahasia", score: 10 },
+                    { text: "Waktu berkualitas", score: 9 },
+                    { text: "Perhatian kecil", score: 8 },
+                    { text: "Kesamaan minat", score: 7 }
+                ]
+            },
+            {
+                text: "Bagaimana kalian menghadapi tantangan?",
+                answers: [
+                    { text: "Bekerja sama", score: 10 },
+                    { text: "Saling menguatkan", score: 9 },
+                    { text: "Mencari solusi bersama", score: 8 },
+                    { text: "Tetap optimis", score: 7 }
+                ]
+            },
+            {
+                text: "Apa ritual unik dalam hubungan kalian?",
+                answers: [
+                    { text: "Perayaan anniversary bulanan", score: 9 },
+                    { text: "Tradisi kencan mingguan", score: 8 },
+                    { text: "Sapaan spesial", score: 7 },
+                    { text: "Kebiasaan lucu bersama", score: 6 }
+                ]
+            },
+            {
+                text: "Bagaimana kalian menunjukkan kasih sayang?",
+                answers: [
+                    { text: "Tindakan kecil penuh arti", score: 10 },
+                    { text: "Kata-kata manis", score: 9 },
+                    { text: "Hadiah thoughtful", score: 8 },
+                    { text: "Quality time", score: 7 }
+                ]
+            }
+        ];
+
+        const emojis = ['❤️', '😊', '🥰', '😍', '💕', '💖', '💝', '💗', '💓', '💞'];
+        let currentQuestion = 0;
+        let totalScore = 0;
+        const maxPossibleScore = questions.length * 10;
+
+        function createEmoji() {
+            const emoji = document.createElement('div');
+            emoji.className = 'emoji';
+            emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            emoji.style.left = Math.random() * window.innerWidth + 'px';
+            emoji.style.top = '-50px';
+            
+            emoji.addEventListener('click', () => {
+                emoji.classList.add('explode');
+                setTimeout(() => emoji.remove(), 500);
+            });
+
+            document.body.appendChild(emoji);
+
+            const animation = emoji.animate([
+                { transform: 'translateY(-50px)' },
+                { transform: `translateY(${window.innerHeight + 50}px)` }
+            ], {
+                duration: Math.random() * 5000 + 5000,
+                easing: 'linear'
+            });
+
+            animation.onfinish = () => emoji.remove();
+        }
+
+        setInterval(createEmoji, 1000);
+
+        function showScreen(screenClass) {
+            document.querySelector('.welcome-screen').classList.remove('active');
+            document.querySelector('.question-screen').classList.remove('active');
+            document.querySelector('.result-screen').classList.remove('active');
+            document.querySelector('.' + screenClass).classList.add('active');
+        }
+
+        function startQuiz() {
+            currentQuestion = 0;
+            totalScore = 0;
+            showScreen('question-screen');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const question = questions[currentQuestion];
+            document.getElementById('question-text').textContent = question.text;
+            
+            const answersHtml = question.answers.map(answer => 
+                `<button class="answer-btn" onclick="selectAnswer(${answer.score})">${answer.text}</button>`
+            ).join('');
+            
+            document.getElementById('answers-container').innerHTML = answersHtml;
+            
+            const progress = ((currentQuestion) / questions.length) * 100;
+            document.querySelector('.progress-fill').style.width = progress + '%';
+        }
+
+        function selectAnswer(score) {
+            totalScore += score;
+            
+            if (currentQuestion < questions.length - 1) {
+                currentQuestion++;
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            const percentageScore = (totalScore / maxPossibleScore) * 100;
+            let message = '';
+
+            if (percentageScore >= 90) {
+                message = "Wow! Kalian sangat cocok! Kecocokan kalian mencapai " + percentageScore.toFixed(1) + "%! Pertahankan ya! 💑✨";
+            } else if (percentageScore >= 70) {
+                message = "Hebat! Kecocokan kalian " + percentageScore.toFixed(1) + "%! Kalian punya chemistry yang bagus! 💕";
+            } else if (percentageScore >= 50) {
+                message = "Kecocokan kalian " + percentageScore.toFixed(1) + "%! Masih ada ruang untuk saling mengenal lebih dalam! 💫";
+            } else {
+                message = "Kecocokan kalian " + percentageScore.toFixed(1) + "%! Mungkin perlu waktu lebih banyak untuk saling memahami. 🌱";
+            }
+
+            document.getElementById('result-text').innerHTML = message;
+            showScreen('result-screen');
+        }
+
+        function restartQuiz() {
+            showScreen('welcome-screen');
+        }
+
+        // Initialize
+        showScreen('welcome-screen');
+    </script>
+</body>
+</html>
